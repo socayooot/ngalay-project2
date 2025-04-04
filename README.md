@@ -21,3 +21,21 @@ The program crashes at both t1 and pc where t1 has a new address of 0xbfffff00 a
 When you overflow the buffer, the program will automatically create new space to hold the overflown values in continuous memory. When this happens, the original pc return address is changed and this is what causes it to have some vulnerabiltiies if an attacker is able to take control of it. Since we know the return address of the stack is 0xbffffee8 we can take advantage of this by overflowing the buffer and inputting that same exact address using extended ASCII characters. When this happens, it causes the PC to try to read from that return address but we changed it. When the string is inputted, the PC return to address 0xbffffeec which is the address PC + 4 from oxbffffee8. This showcases that the vulnerability of string attacks and buffer overflow can be seen as a common or an important thing to lookout for in security. 
 
 If the buffer is not fully allocated for and taken care of, an attacker can take advantage of the buffer and overflow it to gain control of the return address that the program returns to so that they are able to change it to some destination that could potentially have some malicious intent.
+
+**Part 3**
+
+**What is the address of sekret_fn?**
+
+0x0000323c
+
+**What is the ASCII string that lets you encode that address?**
+
+<2
+
+**What is the input string you provide to cause main() to return to sekret_fn()?**
+
+abcdefghijklmnopqrst<2
+
+**Any idea what the sekret_data is?**
+
+After a quick google search, the output of sekret_fn is SGVsbG8gV29ybGQ= and this a string that is encoded in Base64. After using a decoder, this string can be translated to "Hello World!"
