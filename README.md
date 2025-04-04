@@ -16,11 +16,11 @@ This occurs because the program originally only allocates enough memory to store
 
 input: abcdefghijklmnopqrstèþÿ¿
 
-The program crashes at both t1 and pc where t1 has a new address of 0xbfffff00 and pc crashes at 0xbffffeec 
+The program crashes at pc 0xbffffeec 
 
-When you overflow the buffer, the program will automatically create new space to hold the overflown values in continuous memory. When this happens, the original pc return address is changed and this is what causes it to have some vulnerabiltiies if an attacker is able to take control of it. Since we know the return address of the stack is 0xbffffee8 we can take advantage of this by overflowing the buffer and inputting that same exact address using extended ASCII characters. When this happens, it causes the PC to try to read from that return address but we changed it. When the string is inputted, the PC return to address 0xbffffeec which is the address PC + 4 from oxbffffee8. This showcases that the vulnerability of string attacks and buffer overflow can be seen as a common or an important thing to lookout for in security. 
+When you overflow the buffer, the program will automatically create new space to hold the overflown values in continuous memory. When this happens, the original return address is changed and this is what causes it to have some vulnerabiltiies if an attacker is able to take control of it. Since we know the return address that we want to return to is 0xbffffee8 we can take advantage of this by overflowing the buffer and inputting that same exact address using extended ASCII characters. When I inputted the string abcdefghijklmnopqrstèþÿ¿, after the program finishes and tries to return to main it will attempt to jump to 0xbffffee8 decided by the extended ASCII characters. Since this points to a specific location of the buffer, the program will try to execute it by unconditionally jumping to this location, since there is nothing there, this leads to the crash of the pc at 0xbffffeec.
 
-If the buffer is not fully allocated for and taken care of, an attacker can take advantage of the buffer and overflow it to gain control of the return address that the program returns to so that they are able to change it to some destination that could potentially have some malicious intent.
+If the buffer is not fully allocated for and taken care of, an attacker can take advantage of the buffer and overflow it to gain control of the return address that the program returns to so that they are able to change it to some destination that could potentially have some malicious intent. The key takeaway is that proper coding and use of functions are important so that an attacker cannot take control of the buffer and control the flow of the program and potentially point addresses to malicious ones.
 
 **Part 3**
 
@@ -34,8 +34,11 @@ If the buffer is not fully allocated for and taken care of, an attacker can take
 
 **What is the input string you provide to cause main() to return to sekret_fn()?**
 
-
 abcdefghijklmnopqrst<2
+
+**What does sekret_fn() do?**
+
+it prints out SGVsbG8gV29ybGQ= infinitely as long as you keep clicking the run button
 
 **Any idea what the sekret_data is?**
 
@@ -48,6 +51,9 @@ After a quick google search, the output of sekret_fn is SGVsbG8gV29ybGQ= and thi
 I am happy to say that I breezed through this project fairly easily. 
 
 The hardest part of the project was finding the address of sekret_fn. My first approach to finding the address was copying the sekret_fn function into another program and running it and seeing where the address jumps to. This does not work because the address is calcualted during run-time and not the actual address of where the function actually lies. I ended up plugging in a lot of random addresses and values that did not work. In the QtRV simulator there is a section in machine where you can go look at symbol. When I opened it, I was able to find sekret_fn's address which was 0x0000323c and I shoved that into a hex to text converter.
+
+
+Another issue that I faced is in task 2. In my github I have provided screenshots of it. I have different addresses pointed to whenever I input the string abcdefghijklmnopqrstèþÿ¿. Sometimes I would have different addresses that I would return too and I am not too sure why. From my understanding, what is happening is that since the buffer is overflowed and were forcefull changing the return address, I am trying to jump to this address that I stated unconditionally because I know that the program is going to try to access that memory space that was overflowed from the buffer.
 
 **Approximately how much time you think you spent on the project?**
 
