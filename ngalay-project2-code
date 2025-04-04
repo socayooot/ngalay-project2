@@ -1,0 +1,151 @@
+.globl main 
+.equ STDOUT, 1
+.equ STDIN, 0
+.equ __NR_READ, 63
+.equ __NR_WRITE, 64
+.equ __NR_EXIT, 93
+
+################################## instructions ###########################################
+# 1. compile code
+# 2. run code until "Enter a message:" is displayed
+# 3. input a string that is less than 20 bytes long
+# 4. for the purpose of this project, input a string greater than 20 bytes
+# 5. After the 20+ byte string input a UTF-8 code to change the return address
+###########################################################################################
+
+.text
+main:
+	# main() prolog
+	addi sp, sp, -24
+	sw ra, 20(sp)
+
+	# main() body
+	la a0, prompt
+	call puts
+
+	mv a0, sp
+	call gets
+
+	mv a0, sp
+	call puts
+
+	# main() epilog
+	lw ra, 20(sp)
+	addi sp, sp, 24
+	ret
+
+.space 12288
+
+sekret_fn:
+	addi sp, sp, -4
+	sw ra, 0(sp)
+	la a0, sekret_data
+	call puts
+	lw ra, 0(sp)
+	addi sp, sp, 4
+	ret
+
+#################################################################################################
+# Add your implementation of puts() and gets() below here
+#################################################################################################
+
+######################################### getchar ###############################################
+
+getchar:
+   addi sp, sp, -8       // allocate 8 bytes of memory on the stack (save ra and a char)
+   sw ra, 4(sp)          // store the ra on the offset of 4 (keep the address of getchar)
+
+   li a7, __NR_READ      // a7 now holds 63 or tells the computer to make a read system call
+   li a0, STDIN          // file descriptor for stdin (keyboard) is passed in a0
+   mv a1, sp             // address of the buffer is passed in a1 (use the stack pointer as the buffer)
+   li a2, 1              // a2 specifies reading one byte
+   ecall                 // perform the system call and read the character from stdin
+
+   blt a0, x0, eof       // if a0 < 0, branch to eof (error or EOF)
+   lbu a0, 0(a1)         // load byte from buffer (buffer is now in a1)
+   
+   lw ra, 4(sp)          // restore ra
+   addi sp, sp, 8        // free the stack space
+   ret
+
+eof:  
+   li a0, -1             // set a0 to -1 to return an error if there is nothing there in the string
+   lw ra, 4(sp)          // restore ra
+   addi sp, sp, 8        // adjust the stack
+   ret
+   
+################################################################################################################
+
+################################################ putchar #######################################################
+
+putchar:  
+    sb a0, 0(sp)                     //Store the character on the stack
+    li a7, __NR_WRITE           //a7 = system call number 64 for write
+    li a0, STDOUT                 //a0 = file descriptor for stdout
+    mv a1, sp                       //move the stack pointer to a1
+    li a2, 1                            //a2 = length of the string (1 byte)
+    ecall                               //perform the system call and write the character to STDOUT
+    ret   
+
+##################################################################################################################
+
+############################################ puts ################################################################
+
+puts:
+    addi sp, sp, -8            // allocate space on stack
+    sw ra, 4(sp)               // store the ra at offset of 4
+    mv t1, a0                  // save the address of the string into t1
+
+puts_loop:
+    lbu a0, 0(t1)              // load a character from the string
+    beq a0, x0, exit_loop      // if null (end of string), exit the loop
+    jal ra, putchar            // call putchar to write the character
+    addi t1, t1, 1             // increment the address of the pointer to the next character
+    
+    beq x0, x0, puts_loop      // loop until null character is found from gets function
+
+exit_loop:
+    lw ra, 4(sp)               // restore the ra
+    addi sp, sp, 8             // restore the stack
+    ret
+
+##################################################################################################################
+
+################################################### gets #########################################################
+
+gets:
+   addi sp, sp, -16                // allocate space for the stack (8 bytes for ra, 8 bytes for t0)
+   sw ra, 12(sp)                   // store the return address onto the stack at offset 12
+   sw a0, 4(sp)                    // store the buffer pointer (t0) onto the stack at offset 4
+   mv t0, a0                       // save the buffer address in t0
+   
+get_char_loop:
+   jal ra, getchar                 // get a character from stdin (stored in a0)
+   li t1, -1                       // set t1 to -1 for EOF comparison
+   beq a0, t1, gets_done           // if EOF (-1), branch to gets_done
+   li t1, 10                        // ASCII value of new line character
+   beq a0, t1, gets_done           // if new line (ASCII 10), branch to gets_done
+   sb a0, 0(t0)                    // store the character in the buffer at address t0
+   addi t0, t0, 1                  // increment the buffer pointer to the next address
+   
+   beq x0, x0, get_char_loop       // jump back to the loop to get next character
+
+gets_done:
+   li a0, 0                         // add the null terminator (ASCII 0) to the buffer
+   sb a0, 0(t0)                     // store null terminator at the end of the string
+   
+   lw t0, 4(sp)                     // restore the buffer pointer (t0) from the stack
+   lw ra, 12(sp)                    // restore the return address (ra) from the stack
+   addi sp, sp, 16                  // restore the stack (deallocate 16 bytes)
+   ret
+
+    
+####################################################################################################################
+
+.data
+prompt:   .ascii  "Enter a message: "
+prompt_end:
+
+.word 0
+sekret_data:
+.word 0x73564753, 0x67384762, 0x79393256, 0x3D514762, 0x0000000A
